@@ -1,0 +1,175 @@
+--[[ 
+    JAILBREAK POLICE ESP - FULL VERSION
+    One Table | Stable | No Bullshit
+]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LP = Players.LocalPlayer
+
+local PoliceESP = {
+    Enabled = true,
+    TeamName = "Police",
+
+    Color = Color3.fromRGB(0,170,255),
+    OutlineColor = Color3.fromRGB(255,255,255),
+
+    FillTransparency = 0.25,
+    OutlineTransparency = 0,
+
+    ShowName = true,
+    ShowDistance = true,
+
+    MaxDistance = 9999,
+
+    Cache = {}
+}
+
+-- ===== UTIL =====
+local function isPolice(plr)
+    return plr.Team and plr.Team.Name == PoliceESP.TeamName
+end
+
+local function getHRP(char)
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function clear(plr)
+    local data = PoliceESP.Cache[plr]
+    if not data then return end
+
+    if data.Highlight then data.Highlight:Destroy() end
+    if data.Billboard then data.Billboard:Destroy() end
+
+    PoliceESP.Cache[plr] = nil
+end
+
+-- ===== CREATE ESP =====
+local function createESP(plr)
+    if plr == LP then return end
+    if not PoliceESP.Enabled then return end
+    if not isPolice(plr) then return end
+    if not plr.Character then return end
+
+    local hrp = getHRP(plr.Character)
+    if not hrp then return end
+
+    clear(plr)
+
+    -- Highlight
+    local hl = Instance.new("Highlight")
+    hl.Name = "PoliceESP"
+    hl.Adornee = plr.Character
+    hl.FillColor = PoliceESP.Color
+    hl.OutlineColor = PoliceESP.OutlineColor
+    hl.FillTransparency = PoliceESP.FillTransparency
+    hl.OutlineTransparency = PoliceESP.OutlineTransparency
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Parent = plr.Character
+
+    -- Billboard
+    local bb = Instance.new("BillboardGui")
+    bb.Size = UDim2.new(0,200,0,50)
+    bb.StudsOffset = Vector3.new(0,3,0)
+    bb.AlwaysOnTop = true
+    bb.Adornee = hrp
+    bb.Parent = hrp
+
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.new(1,0,1,0)
+    txt.BackgroundTransparency = 1
+    txt.TextColor3 = PoliceESP.Color
+    txt.TextStrokeTransparency = 0
+    txt.Font = Enum.Font.GothamBold
+    txt.TextSize = 14
+    txt.Parent = bb
+
+    PoliceESP.Cache[plr] = {
+        Highlight = hl,
+        Billboard = bb,
+        Text = txt
+    }
+end
+
+-- ===== UPDATE LOOP =====
+RunService.RenderStepped:Connect(function()
+    if not PoliceESP.Enabled then return end
+
+    for plr,data in pairs(PoliceESP.Cache) do
+        if not plr or not plr.Character or not isPolice(plr) then
+            clear(plr)
+            continue
+        end
+
+        local hrp = getHRP(plr.Character)
+        if not hrp then
+            clear(plr)
+            continue
+        end
+
+        local dist = (Camera.CFrame.Position - hrp.Position).Magnitude
+        if dist > PoliceESP.MaxDistance then
+            data.Billboard.Enabled = false
+        else
+            data.Billboard.Enabled = true
+
+            local text = ""
+            if PoliceESP.ShowName then
+                text = plr.Name
+            end
+            if PoliceESP.ShowDistance then
+                text ..= string.format(" [%dm]", math.floor(dist))
+            end
+
+            data.Text.Text = text
+        end
+    end
+end)
+
+-- ===== PLAYER HANDLING =====
+local function hook(plr)
+    plr.CharacterAdded:Connect(function()
+        task.wait(0.2)
+        createESP(plr)
+    end)
+
+    plr:GetPropertyChangedSignal("Team"):Connect(function()
+        task.wait(0.1)
+        if isPolice(plr) then
+            createESP(plr)
+        else
+            clear(plr)
+        end
+    end)
+end
+
+for _,plr in ipairs(Players:GetPlayers()) do
+    hook(plr)
+    createESP(plr)
+end
+
+Players.PlayerAdded:Connect(function(plr)
+    hook(plr)
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    clear(plr)
+end)
+
+-- ===== PUBLIC CONTROL =====
+function PoliceESP:Enable()
+    self.Enabled = true
+    for _,plr in ipairs(Players:GetPlayers()) do
+        createESP(plr)
+    end
+end
+
+function PoliceESP:Disable()
+    self.Enabled = false
+    for plr,_ in pairs(self.Cache) do
+        clear(plr)
+    end
+end
+
+print("✅ JAILBREAK POLICE ESP FULL LOADED")
