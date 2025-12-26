@@ -16,38 +16,40 @@ local lockedPlayer = nil
 local GUI_VISIBLE = true
 local waitingForKey = false
 
--- ================= ENEMY CHECK =================
-local function isEnemy(p)
-	return p.Team and LP.Team and p.Team ~= LP.Team
+-- ================= POLICE CHECK (ONLY CHANGE) =================
+local function isPolice(p)
+	return p.Team and p.Team.Name == "Police"
 end
 
--- ================= GET TARGET =================
+-- ================= GET TARGET (FIXED) =================
 local function getPlayerUnderCrosshair()
 	local mousePos = UserInputService:GetMouseLocation()
-	local nearest, shortest
-	for _,p in ipairs(Players:GetPlayers()) do
-		if p ~= LP and isEnemy(p)
+	local nearest, shortest = nil, math.huge
+
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= LP
+			and isPolice(p)
 			and p.Character
 			and p.Character:FindFirstChild("Head")
-			and p.Character:FindFirstChild("HumanoidRootPart")
 			and p.Character:FindFirstChild("Humanoid")
-			and p.Character.Humanoid.Health > 0 then
-
+			and p.Character.Humanoid.Health > 0
+		then
 			local pos, onscreen = Camera:WorldToViewportPoint(p.Character.Head.Position)
 			if onscreen then
-				local dist = (Vector2.new(pos.X,pos.Y)-mousePos).Magnitude
-				if not shortest or dist < shortest then
+				local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+				if dist < shortest then
 					shortest = dist
 					nearest = p
 				end
 			end
 		end
 	end
+
 	return nearest
 end
 
 -- ================= INPUT =================
-UserInputService.InputBegan:Connect(function(i,gp)
+UserInputService.InputBegan:Connect(function(i, gp)
 	if gp then return end
 
 	if waitingForKey and i.UserInputType == Enum.UserInputType.Keyboard then
@@ -68,36 +70,42 @@ UserInputService.InputBegan:Connect(function(i,gp)
 	end
 end)
 
--- ================= AIM =================
+-- ================= AIM (LOCKED – NO JUMP) =================
 RunService.RenderStepped:Connect(function()
 	if AIM_ON and lockedPlayer and lockedPlayer.Character then
-		local h = lockedPlayer.Character:FindFirstChild("Head")
-		local hrp = lockedPlayer.Character:FindFirstChild("HumanoidRootPart")
-		local hum = lockedPlayer.Character:FindFirstChild("Humanoid")
+		local char = lockedPlayer.Character
+		local h = char:FindFirstChild("Head")
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		local hum = char:FindFirstChild("Humanoid")
 
-		if h and hrp and hum and hum.Health > 0 and isEnemy(lockedPlayer) then
-			Camera.CFrame = CFrame.new(
-				Camera.CFrame.Position,
-				h.Position + hrp.Velocity * PREDICTION
-			)
+		-- target invalid → auto off
+		if not h or not hrp or not hum or hum.Health <= 0 or not isPolice(lockedPlayer) then
+			AIM_ON = false
+			lockedPlayer = nil
+			return
 		end
+
+		Camera.CFrame = CFrame.new(
+			Camera.CFrame.Position,
+			h.Position + hrp.Velocity * PREDICTION
+		)
 	end
 end)
 
 -- ================= NOTIFICATION =================
 local function notify(txt)
-	local g = Instance.new("ScreenGui",game.CoreGui)
+	local g = Instance.new("ScreenGui", game.CoreGui)
 	g.IgnoreGuiInset = true
 
-	local f = Instance.new("Frame",g)
+	local f = Instance.new("Frame", g)
 	f.Size = UDim2.new(0,260,0,70)
 	f.Position = UDim2.new(1,-280,1,-90)
 	f.BackgroundColor3 = Color3.fromRGB(35,35,35)
 	f.BackgroundTransparency = 1
 	f.BorderSizePixel = 0
-	Instance.new("UICorner",f).CornerRadius = UDim.new(0,12)
+	Instance.new("UICorner", f).CornerRadius = UDim.new(0,12)
 
-	local t = Instance.new("TextLabel",f)
+	local t = Instance.new("TextLabel", f)
 	t.Size = UDim2.new(1,0,1,0)
 	t.BackgroundTransparency = 1
 	t.Text = "Eclipse HUB\n"..txt
@@ -106,13 +114,13 @@ local function notify(txt)
 	t.TextColor3 = Color3.new(1,1,1)
 	t.TextTransparency = 1
 
-	TweenService:Create(f,TweenInfo.new(.4),{BackgroundTransparency=.1}):Play()
-	TweenService:Create(t,TweenInfo.new(.4),{TextTransparency=0}):Play()
+	TweenService:Create(f, TweenInfo.new(.4), {BackgroundTransparency=.1}):Play()
+	TweenService:Create(t, TweenInfo.new(.4), {TextTransparency=0}):Play()
 
-	task.delay(5,function()
-		TweenService:Create(f,TweenInfo.new(.3),{BackgroundTransparency=1}):Play()
-		TweenService:Create(t,TweenInfo.new(.3),{TextTransparency=1}):Play()
-		task.delay(.4,function()
+	task.delay(5, function()
+		TweenService:Create(f, TweenInfo.new(.3), {BackgroundTransparency=1}):Play()
+		TweenService:Create(t, TweenInfo.new(.3), {TextTransparency=1}):Play()
+		task.delay(.4, function()
 			g:Destroy()
 		end)
 	end)
@@ -121,11 +129,11 @@ end
 notify("Please wait 5 seconds...")
 task.wait(5)
 
--- ================= GUI =================
-local gui = Instance.new("ScreenGui",game.CoreGui)
+-- ================= GUI (UNTOUCHED) =================
+local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.IgnoreGuiInset = true
 
-local board = Instance.new("Frame",gui)
+local board = Instance.new("Frame", gui)
 board.Size = UDim2.new(0,340,0,150)
 board.Position = UDim2.new(.5,-170,.56,-75)
 board.BackgroundColor3 = Color3.fromRGB(30,30,30)
@@ -133,13 +141,13 @@ board.BackgroundTransparency = 1
 board.BorderSizePixel = 0
 board.Visible = false
 
-Instance.new("UICorner",board).CornerRadius = UDim.new(0,14)
+Instance.new("UICorner", board).CornerRadius = UDim.new(0,14)
 
-local stroke = Instance.new("UIStroke",board)
+local stroke = Instance.new("UIStroke", board)
 stroke.Color = Color3.fromRGB(90,180,255)
 stroke.Transparency = 1
 
-local title = Instance.new("TextLabel",board)
+local title = Instance.new("TextLabel", board)
 title.Size = UDim2.new(1,0,0,30)
 title.Text = "Eclipse HUB"
 title.Font = Enum.Font.GothamBold
@@ -148,7 +156,7 @@ title.TextColor3 = Color3.fromRGB(90,180,255)
 title.BackgroundTransparency = 1
 title.TextTransparency = 1
 
-local status = Instance.new("TextLabel",board)
+local status = Instance.new("TextLabel", board)
 status.Position = UDim2.new(0,0,0,40)
 status.Size = UDim2.new(1,0,0,25)
 status.Font = Enum.Font.Gotham
@@ -156,7 +164,7 @@ status.TextSize = 16
 status.BackgroundTransparency = 1
 status.TextTransparency = 1
 
-local keybtn = Instance.new("TextButton",board)
+local keybtn = Instance.new("TextButton", board)
 keybtn.Position = UDim2.new(0.1,0,0.65,0)
 keybtn.Size = UDim2.new(0.8,0,0,30)
 keybtn.Text = "GUI KEY : "..GUI_KEY.Name
@@ -164,7 +172,7 @@ keybtn.Font = Enum.Font.Gotham
 keybtn.TextSize = 14
 keybtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
 keybtn.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner",keybtn)
+Instance.new("UICorner", keybtn)
 
 keybtn.MouseButton1Click:Connect(function()
 	waitingForKey = true
