@@ -66,10 +66,8 @@ UserInputService.InputBegan:Connect(function(i,gp)
 	end
 end)
 
--- ================= AIM (CHỈ PHẦN NÀY ĐƯỢC SỬA) =================
-local lastVel = Vector3.zero
-
-RunService.RenderStepped:Connect(function(dt)
+-- ================= AIM (CHỈ SỬA PHẦN NÀY | AIM BODY | KHÔNG PREDICT) =================
+RunService.RenderStepped:Connect(function()
 	if not (AIM_ON and lockedPlayer and lockedPlayer.Character) then return end
 
 	local hrp = lockedPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -79,39 +77,17 @@ RunService.RenderStepped:Connect(function(dt)
 	local camPos = Camera.CFrame.Position
 	local dist = (camPos - hrp.Position).Magnitude
 
-	local vel = hrp.AssemblyLinearVelocity
-	local accel = (vel - lastVel) / math.max(dt, 0.016)
-	lastVel = vel
+	-- AIM BODY (thân người), không head
+	local aimPos = hrp.Position + Vector3.new(0, 0.1, 0)
 
-	-- predict theo khoảng cách (PVP Jailbreak)
-	local predictTime
-	if dist < 80 then
-		predictTime = 0.095     -- CẬN: spray / shotgun
-	elseif dist < 160 then
-		predictTime = 0.065     -- MID: ổn định nhất
-	else
-		predictTime = 0.04      -- XA: sniper (ít can thiệp)
-	end
-
-	local aimPos =
-		hrp.Position
-		+ vel * predictTime
-		+ accel * 0.0012
-
-	-- bù spam jump / zigzag
-	if vel.Y > 3 then
-		aimPos += Vector3.new(0, 0.12, 0)
-	elseif vel.Y < -3 then
-		aimPos -= Vector3.new(0, 0.14, 0)
-	end
-
+	-- smooth theo khoảng cách (cận chiến mạnh – xa yếu)
 	local smooth
-	if dist < 80 then
-		smooth = 0.42
-	elseif dist < 160 then
-		smooth = 0.3
+	if dist < 70 then
+		smooth = 0.6      -- CẬN CHIẾN: rất dính body
+	elseif dist < 150 then
+		smooth = 0.32     -- TẦM VỪA: hỗ trợ vừa đủ
 	else
-		smooth = 0.18
+		smooth = 0.12     -- XA: rất nhẹ (sniper tự aim)
 	end
 
 	local camCF = Camera.CFrame
@@ -250,4 +226,4 @@ RunService.RenderStepped:Connect(function()
 	keybtn.Text = waitingForKey and "PRESS ANY KEY..." or ("GUI KEY : "..GUI_KEY.Name)
 end)
 
-print("Eclipse HUB fully completed ✅ (Police Body Aim Only)")
+print("Eclipse HUB fully completed ✅ (Police BODY Aim Only)")
