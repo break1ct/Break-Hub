@@ -76,31 +76,44 @@ RunService.RenderStepped:Connect(function(dt)
 	local hum = lockedPlayer.Character:FindFirstChild("Humanoid")
 	if not (hrp and hum and hum.Health > 0 and isPolice(lockedPlayer)) then return end
 
-	-- velocity + accel để bắt zigzag
+	local camPos = Camera.CFrame.Position
+	local dist = (camPos - hrp.Position).Magnitude
+
 	local vel = hrp.AssemblyLinearVelocity
 	local accel = (vel - lastVel) / math.max(dt, 0.016)
 	lastVel = vel
 
-	local camPos = Camera.CFrame.Position
-	local dist = (camPos - hrp.Position).Magnitude
-
-	-- predict nhỉnh hơn chút (không hút)
-	local predictTime = math.clamp(dist / 240, 0.03, 0.085)
+	-- predict theo khoảng cách (PVP Jailbreak)
+	local predictTime
+	if dist < 80 then
+		predictTime = 0.095     -- CẬN: spray / shotgun
+	elseif dist < 160 then
+		predictTime = 0.065     -- MID: ổn định nhất
+	else
+		predictTime = 0.04      -- XA: sniper (ít can thiệp)
+	end
 
 	local aimPos =
 		hrp.Position
 		+ vel * predictTime
-		+ accel * 0.0018   -- đổi hướng nhanh hơn
+		+ accel * 0.0012
 
-	-- bù jump / rơi nhẹ
+	-- bù spam jump / zigzag
 	if vel.Y > 3 then
-		aimPos += Vector3.new(0, 0.14, 0)
+		aimPos += Vector3.new(0, 0.12, 0)
 	elseif vel.Y < -3 then
-		aimPos -= Vector3.new(0, 0.18, 0)
+		aimPos -= Vector3.new(0, 0.14, 0)
 	end
 
-	-- smooth cao → vẫn phải rê chuột
-	local smooth = math.clamp(0.24 + dist / 1500, 0.24, 0.34)
+	local smooth
+	if dist < 80 then
+		smooth = 0.42
+	elseif dist < 160 then
+		smooth = 0.3
+	else
+		smooth = 0.18
+	end
+
 	local camCF = Camera.CFrame
 	Camera.CFrame = camCF:Lerp(
 		CFrame.new(camCF.Position, aimPos),
