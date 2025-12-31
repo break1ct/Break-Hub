@@ -66,33 +66,62 @@ UserInputService.InputBegan:Connect(function(i,gp)
 	end
 end)
 
--- ================= AIM (CHỈ SỬA PHẦN NÀY | AIM BODY | KHÔNG PREDICT) =================
+-- ================= AIM (CHỈ PHẦN NÀY ĐƯỢC SỬA) =================
 RunService.RenderStepped:Connect(function()
 	if not (AIM_ON and lockedPlayer and lockedPlayer.Character) then return end
 
-	local hrp = lockedPlayer.Character:FindFirstChild("HumanoidRootPart")
-	local hum = lockedPlayer.Character:FindFirstChild("Humanoid")
+	local char = lockedPlayer.Character
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	local hum = char:FindFirstChild("Humanoid")
 	if not (hrp and hum and hum.Health > 0 and isPolice(lockedPlayer)) then return end
 
-	local camPos = Camera.CFrame.Position
-	local dist = (camPos - hrp.Position).Magnitude
+	local camCF = Camera.CFrame
+	local camPos = camCF.Position
+	local hrpPos = hrp.Position
 
-	-- AIM BODY (thân người), không head
-	local aimPos = hrp.Position + Vector3.new(0, 0.1, 0)
+	-- DISTANCE
+	local dist = (camPos - hrpPos).Magnitude
 
-	-- smooth theo khoảng cách (cận chiến mạnh – xa yếu)
-	local smooth
-	if dist < 70 then
-		smooth = 0.6      -- CẬN CHIẾN: rất dính body
-	elseif dist < 150 then
-		smooth = 0.32     -- TẦM VỪA: hỗ trợ vừa đủ
-	else
-		smooth = 0.12     -- XA: rất nhẹ (sniper tự aim)
+	-- BODY AIM (CENTER MASS)
+	local bodyOffset = Vector3.new(0, -0.4, 0)
+
+	-- ANTI JUMP SPAM
+	if hrp.Velocity.Y > 1.5 then
+		bodyOffset = bodyOffset + Vector3.new(0, -0.35, 0)
 	end
 
-	local camCF = Camera.CFrame
+	-- ANTI ZIGZAG
+	local vel = hrp.Velocity
+	local flatVel = Vector3.new(
+		math.clamp(vel.X, -28, 28),
+		0,
+		math.clamp(vel.Z, -28, 28)
+	)
+
+	-- SMART LOW PREDICT
+	local predictFactor
+	if dist < 60 then
+		predictFactor = 0.015
+	elseif dist < 150 then
+		predictFactor = 0.035
+	else
+		predictFactor = 0.06
+	end
+
+	local predictedPos = hrpPos + bodyOffset + (flatVel * predictFactor)
+
+	-- HARDNESS CONTROL
+	local smooth
+	if dist < 55 then
+		smooth = 0.72
+	elseif dist < 130 then
+		smooth = 0.48
+	else
+		smooth = 0.28
+	end
+
 	Camera.CFrame = camCF:Lerp(
-		CFrame.new(camCF.Position, aimPos),
+		CFrame.new(camPos, predictedPos),
 		smooth
 	)
 end)
@@ -226,4 +255,4 @@ RunService.RenderStepped:Connect(function()
 	keybtn.Text = waitingForKey and "PRESS ANY KEY..." or ("GUI KEY : "..GUI_KEY.Name)
 end)
 
-print("Eclipse HUB fully completed ✅ (Police BODY Aim Only)")
+print("Eclipse HUB fully completed ✅ (Police Body Aim Only)")
