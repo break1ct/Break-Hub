@@ -66,16 +66,46 @@ UserInputService.InputBegan:Connect(function(i,gp)
 	end
 end)
 
--- ================= AIM =================
-RunService.RenderStepped:Connect(function()
-	if AIM_ON and lockedPlayer and lockedPlayer.Character then
-		local hrp = lockedPlayer.Character:FindFirstChild("HumanoidRootPart")
-		local hum = lockedPlayer.Character:FindFirstChild("Humanoid")
+-- ================= AIM (CHỈ PHẦN NÀY ĐƯỢC SỬA) =================
+local lastVel = Vector3.zero
 
-		if hrp and hum and hum.Health > 0 and isPolice(lockedPlayer) then
-			Camera.CFrame = CFrame.new(Camera.CFrame.Position, hrp.Position)
-		end
+RunService.RenderStepped:Connect(function(dt)
+	if not (AIM_ON and lockedPlayer and lockedPlayer.Character) then return end
+
+	local hrp = lockedPlayer.Character:FindFirstChild("HumanoidRootPart")
+	local hum = lockedPlayer.Character:FindFirstChild("Humanoid")
+	if not (hrp and hum and hum.Health > 0 and isPolice(lockedPlayer)) then return end
+
+	-- velocity & accel để bắt zigzag
+	local vel = hrp.AssemblyLinearVelocity
+	local accel = (vel - lastVel) / math.max(dt, 0.016)
+	lastVel = vel
+
+	local camPos = Camera.CFrame.Position
+	local dist = (camPos - hrp.Position).Magnitude
+
+	-- predict ngắn, không hút
+	local predictTime = math.clamp(dist / 260, 0.025, 0.07)
+
+	local aimPos =
+		hrp.Position
+		+ vel * predictTime           -- chạy ngang / zigzag
+		+ accel * 0.0012              -- đổi hướng nhanh
+
+	-- bù jump / rơi rất nhẹ
+	if vel.Y > 3 then
+		aimPos += Vector3.new(0, 0.12, 0)
+	elseif vel.Y < -3 then
+		aimPos -= Vector3.new(0, 0.16, 0)
 	end
+
+	-- smooth cao → vẫn phải tự rê
+	local smooth = math.clamp(0.22 + dist / 1600, 0.22, 0.32)
+	local camCF = Camera.CFrame
+	Camera.CFrame = camCF:Lerp(
+		CFrame.new(camCF.Position, aimPos),
+		smooth
+	)
 end)
 
 -- ================= NOTIFICATION =================
@@ -169,7 +199,11 @@ local function showGUI()
 	if guiTween then guiTween:Cancel() end
 	board.Visible = true
 	board.Position = UDim2.new(.5,-170,.53,-75)
-	guiTween = TweenService:Create(board, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {BackgroundTransparency = 0.15, Position = UDim2.new(.5,-170,.5,-75)})
+	guiTween = TweenService:Create(
+		board,
+		TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+		{BackgroundTransparency = 0.15, Position = UDim2.new(.5,-170,.5,-75)}
+	)
 	guiTween:Play()
 	TweenService:Create(title,TweenInfo.new(.35),{TextTransparency=0}):Play()
 	TweenService:Create(status,TweenInfo.new(.35),{TextTransparency=0}):Play()
@@ -178,7 +212,11 @@ end
 
 local function hideGUI()
 	if guiTween then guiTween:Cancel() end
-	guiTween = TweenService:Create(board, TweenInfo.new(0.18, Enum.EasingStyle.Linear), {BackgroundTransparency=1, Position=UDim2.new(.5,-170,.56,-75)})
+	guiTween = TweenService:Create(
+		board,
+		TweenInfo.new(0.18, Enum.EasingStyle.Linear),
+		{BackgroundTransparency=1, Position=UDim2.new(.5,-170,.56,-75)}
+	)
 	guiTween:Play()
 	TweenService:Create(title,TweenInfo.new(.15),{TextTransparency=1}):Play()
 	TweenService:Create(status,TweenInfo.new(.15),{TextTransparency=1}):Play()
