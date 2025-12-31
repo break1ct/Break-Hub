@@ -76,7 +76,7 @@ RunService.RenderStepped:Connect(function(dt)
 	local hum = lockedPlayer.Character:FindFirstChild("Humanoid")
 	if not (hrp and hum and hum.Health > 0 and isPolice(lockedPlayer)) then return end
 
-	-- velocity & accel để bắt zigzag
+	-- velocity + accel để bắt zigzag
 	local vel = hrp.AssemblyLinearVelocity
 	local accel = (vel - lastVel) / math.max(dt, 0.016)
 	lastVel = vel
@@ -84,23 +84,23 @@ RunService.RenderStepped:Connect(function(dt)
 	local camPos = Camera.CFrame.Position
 	local dist = (camPos - hrp.Position).Magnitude
 
-	-- predict ngắn, không hút
-	local predictTime = math.clamp(dist / 260, 0.025, 0.07)
+	-- predict nhỉnh hơn chút (không hút)
+	local predictTime = math.clamp(dist / 240, 0.03, 0.085)
 
 	local aimPos =
 		hrp.Position
-		+ vel * predictTime           -- chạy ngang / zigzag
-		+ accel * 0.0012              -- đổi hướng nhanh
+		+ vel * predictTime
+		+ accel * 0.0018   -- đổi hướng nhanh hơn
 
-	-- bù jump / rơi rất nhẹ
+	-- bù jump / rơi nhẹ
 	if vel.Y > 3 then
-		aimPos += Vector3.new(0, 0.12, 0)
+		aimPos += Vector3.new(0, 0.14, 0)
 	elseif vel.Y < -3 then
-		aimPos -= Vector3.new(0, 0.16, 0)
+		aimPos -= Vector3.new(0, 0.18, 0)
 	end
 
-	-- smooth cao → vẫn phải tự rê
-	local smooth = math.clamp(0.22 + dist / 1600, 0.22, 0.32)
+	-- smooth cao → vẫn phải rê chuột
+	local smooth = math.clamp(0.24 + dist / 1500, 0.24, 0.34)
 	local camCF = Camera.CFrame
 	Camera.CFrame = camCF:Lerp(
 		CFrame.new(camCF.Position, aimPos),
