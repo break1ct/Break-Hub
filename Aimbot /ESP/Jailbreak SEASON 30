@@ -61,6 +61,7 @@ UserInputService.InputBegan:Connect(function(i,gp)
 	end
 end)
 
+
 RunService.RenderStepped:Connect(function()
 	if not (AIM_ON and lockedPlayer and lockedPlayer.Character) then return end
 
@@ -79,21 +80,19 @@ RunService.RenderStepped:Connect(function()
 	local vy = hrp.Velocity.Y
 	local state = hum:GetState()
 
-	if vy > 2 then
-		bodyOffset += Vector3.new(0, -0.32, 0)
-	elseif vy < -2 then
-		bodyOffset += Vector3.new(0, -0.12, 0)
-	elseif state == Enum.HumanoidStateType.Landed then
-		bodyOffset += Vector3.new(0, 0.06, 0)
-	end
+	-- Mềm hóa offset theo nhảy rơi
+	bodyOffset = bodyOffset + Vector3.new(0, math.clamp(vy*0.15,-0.3,0.3),0)
 
-	local aimPos = hrpPos + bodyOffset
+	-- Thêm dự đoán theo vận tốc
+	local prediction = hrp.Velocity * 0.15
+	local aimPos = hrpPos + bodyOffset + prediction
 
+	-- Lerp mượt hơn
 	local smooth
 	if dist < 55 then
-		smooth = 0.7
+		smooth = 0.4
 	elseif dist < 130 then
-		smooth = 0.45
+		smooth = 0.35
 	else
 		smooth = 0.3
 	end
@@ -104,7 +103,6 @@ RunService.RenderStepped:Connect(function()
 	)
 end)
 
--- Notify
 local function notify(txt)
 	local g = Instance.new("ScreenGui",game.CoreGui)
 	g.IgnoreGuiInset = true
@@ -146,7 +144,7 @@ local gui = Instance.new("ScreenGui",game.CoreGui)
 gui.IgnoreGuiInset = true
 
 local board = Instance.new("Frame",gui)
-board.Size = UDim2.new(0,340,0,145) -- mở rộng chiều cao
+board.Size = UDim2.new(0,340,0,145)
 board.Position = UDim2.new(.5,-170,.56,-72)
 board.BackgroundColor3 = Color3.fromRGB(30,30,30)
 board.BackgroundTransparency = 1
@@ -184,7 +182,6 @@ keybtn.TextSize = 14
 keybtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
 keybtn.TextColor3 = Color3.new(1,1,1)
 Instance.new("UICorner",keybtn)
-
 
 local credit = Instance.new("TextLabel",board)
 credit.Position = UDim2.new(0,0,1,-22)
