@@ -1,174 +1,80 @@
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
-local LP = Players.LocalPlayer
+local Players=game:GetService("Players")
+local RunService=game:GetService("RunService")
+local Camera=workspace.CurrentCamera
+local LP=Players.LocalPlayer
 
-local PoliceESP = {
-    Enabled = true,
-    TeamName = "Police",
+local drawings={}
 
-    Color = Color3.fromRGB(0,170,255),
-    OutlineColor = Color3.fromRGB(255,255,255),
-
-    FillTransparency = 0.25,
-    OutlineTransparency = 0,
-
-    ShowName = true,
-    ShowDistance = true,
-
-    MaxDistance = 9999,
-
-    Cache = {}
-}
-
-local function isPolice(plr)
-    return plr
-        and plr ~= LP
-        and plr.Team
-        and plr.Team.Name == PoliceESP.TeamName
+local function valid(p)
+	if p==LP then return end
+	if not p.Team or p.Team.Name~="Police" then return end
+	local c=p.Character
+	if not c then return end
+	local h=c:FindFirstChildOfClass("Humanoid")
+	local r=c:FindFirstChild("HumanoidRootPart")
+	if not h or not r or h.Health<=0 then return end
+	return h,r
 end
 
-local function getHRP(char)
-    return char and char:FindFirstChild("HumanoidRootPart")
+local function make()
+	local bg=Drawing.new("Square")
+	bg.Filled=true
+	bg.Thickness=0
+	bg.Color=Color3.fromRGB(25,25,25)
+	bg.Transparency=0.8
+	bg.Visible=false
+
+	local fg=Drawing.new("Square")
+	fg.Filled=true
+	fg.Thickness=0
+	fg.Transparency=0.9
+	fg.Visible=false
+
+	return bg,fg
 end
 
-local function clear(plr)
-    local data = PoliceESP.Cache[plr]
-    if not data then return end
-
-    if data.Highlight then pcall(function() data.Highlight:Destroy() end) end
-    if data.Billboard then pcall(function() data.Billboard:Destroy() end) end
-
-    PoliceESP.Cache[plr] = nil
+local function clear(p)
+	local d=drawings[p]
+	if not d then return end
+	d[1]:Remove()
+	d[2]:Remove()
+	drawings[p]=nil
 end
 
-local function createESP(plr)
-    if not PoliceESP.Enabled then return end
-    if not isPolice(plr) then return end
-    if not plr.Character then return end
+Players.PlayerRemoving:Connect(clear)
 
-    local hrp = getHRP(plr.Character)
-    if not hrp then return end
+RunService.RenderStepped:Connect(function()
+	for _,p in ipairs(Players:GetPlayers()) do
+		local h,r=valid(p)
+		if h then
+			local pos,on=Camera:WorldToViewportPoint(r.Position)
+			if on then
+				local d=drawings[p]
+				if not d then
+					local bg,fg=make()
+					d={bg,fg}
+					drawings[p]=d
+				end
 
-    clear(plr)
+				local hp=h.Health/h.MaxHealth
+				local height=math.clamp(12000/pos.Z,20,42)
+				local width=3
+				local x=pos.X-16
+				local y=pos.Y-height/2
 
-    local hl = Instance.new("Highlight")
-    hl.Name = "PoliceESP"
-    hl.Adornee = plr.Character
-    hl.FillColor = PoliceESP.Color
-    hl.OutlineColor = PoliceESP.OutlineColor
-    hl.FillTransparency = PoliceESP.FillTransparency
-    hl.OutlineTransparency = PoliceESP.OutlineTransparency
-    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    hl.Parent = plr.Character
+				d[1].Size=Vector2.new(width,height)
+				d[1].Position=Vector2.new(x,y)
+				d[1].Visible=true
 
-    local bb = Instance.new("BillboardGui")
-    bb.Size = UDim2.new(0,200,0,50)
-    bb.StudsOffset = Vector3.new(0,3,0)
-    bb.AlwaysOnTop = true
-    bb.Adornee = hrp
-    bb.Parent = hrp
-
-    local txt = Instance.new("TextLabel")
-    txt.Size = UDim2.new(1,0,1,0)
-    txt.BackgroundTransparency = 1
-    txt.TextColor3 = PoliceESP.Color
-    txt.TextStrokeTransparency = 0
-    txt.Font = Enum.Font.GothamBold
-    txt.TextSize = 14
-    txt.Text = "" -- khởi tạo rỗng để check update
-    txt.Parent = bb
-
-    PoliceESP.Cache[plr] = {
-        Highlight = hl,
-        Billboard = bb,
-        Text = txt,
-        LastText = ""
-    }
-
-    plr.CharacterRemoving:Once(function()
-        clear(plr)
-    end)
-end
-
--- update ESP nhưng chỉ khi thay đổi text hoặc khoảng cách vượt MaxDistance
-RunService.Heartbeat:Connect(function()
-    if not PoliceESP.Enabled then return end
-    if not next(PoliceESP.Cache) then return end
-
-    local camPos = Camera.CFrame.Position
-
-    for plr,data in pairs(PoliceESP.Cache) do
-        if not plr or not plr.Character or not isPolice(plr) then
-            clear(plr)
-            continue
-        end
-
-        local hrp = getHRP(plr.Character)
-        if not hrp or not data.Billboard or not data.Text then
-            clear(plr)
-            continue
-        end
-
-        local dist = (camPos - hrp.Position).Magnitude
-        local enable = dist <= PoliceESP.MaxDistance
-        data.Billboard.Enabled = enable
-        if not enable then continue end
-
-        local text = ""
-        if PoliceESP.ShowName then
-            text = plr.Name
-        end
-        if PoliceESP.ShowDistance then
-            text ..= string.format(" [%dm]", math.floor(dist))
-        end
-
-        if text ~= data.LastText then -- chỉ update khi text thay đổi
-            data.Text.Text = text
-            data.LastText = text
-        end
-    end
+				d[2].Size=Vector2.new(width,height*hp)
+				d[2].Position=Vector2.new(x,y+height*(1-hp))
+				d[2].Color=Color3.fromRGB(255*(1-hp),255*hp,60)
+				d[2].Visible=true
+			else
+				clear(p)
+			end
+		else
+			clear(p)
+		end
+	end
 end)
-
-local function hook(plr)
-    plr.CharacterAdded:Connect(function()
-        task.wait(0.2)
-        createESP(plr)
-    end)
-
-    plr:GetPropertyChangedSignal("Team"):Connect(function()
-        task.wait(0.1)
-        if isPolice(plr) then
-            createESP(plr)
-        else
-            clear(plr)
-        end
-    end)
-end
-
-for _,plr in ipairs(Players:GetPlayers()) do
-    hook(plr)
-    createESP(plr)
-end
-
-Players.PlayerAdded:Connect(function(plr)
-    hook(plr)
-end)
-
-Players.PlayerRemoving:Connect(function(plr)
-    clear(plr)
-end)
-
-function PoliceESP:Enable()
-    self.Enabled = true
-    for _,plr in ipairs(Players:GetPlayers()) do
-        createESP(plr)
-    end
-end
-
-function PoliceESP:Disable()
-    self.Enabled = false
-    for plr,_ in pairs(self.Cache) do
-        clear(plr)
-    end
-end
