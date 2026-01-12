@@ -5,7 +5,6 @@ local TweenService = game:GetService("TweenService")
 local Camera = workspace.CurrentCamera
 local LP = Players.LocalPlayer
 
-
 _G.AIM_ON = false
 _G.AIM_KEY = Enum.KeyCode.X
 _G.GUI_KEY = Enum.KeyCode.RightShift
@@ -19,7 +18,6 @@ local GUI_VISIBLE = false
 local OriginalSize = UDim2.new(0, 580, 0, 390)
 local IsSliding = false 
 
--- // ANIMATION FUNCTION
 local function Animate(obj, prop, time)
     local t = TweenService:Create(obj, TweenInfo.new(time or 0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), prop)
     t:Play()
@@ -27,7 +25,6 @@ local function Animate(obj, prop, time)
 end
 
 local gui = Instance.new("ScreenGui", game.CoreGui)
-
 
 local LoadingMain = Instance.new("Frame", gui)
 LoadingMain.Size = UDim2.new(0, 320, 0, 110)
@@ -50,7 +47,6 @@ local LBarFill = Instance.new("Frame", LBarBg)
 LBarFill.Size = UDim2.new(0, 0, 1, 0); LBarFill.BackgroundColor3 = Color3.fromRGB(90, 180, 255)
 Instance.new("UICorner", LBarFill)
 
--- // 2. MAIN PANEL
 local Main = Instance.new("Frame", gui)
 Main.Size = UDim2.new(0, 0, 0, 0)
 Main.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -130,7 +126,6 @@ local function AddKeybind(parent, text, default, callback)
     end)
 end
 
-
 local function GetPlayerInfo(p)
     if not p or not p.Team or not LP.Team then return false, Color3.new(1,1,1) end
     local isEnemy = false
@@ -143,7 +138,6 @@ local function GetPlayerInfo(p)
     end
     return isEnemy, (isEnemy and (pTeam == "Police" and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(255,0,0)) or Color3.new(1,1,1))
 end
-
 
 local function getNearestEnemy()
     local mousePos = UserInputService:GetMouseLocation()
@@ -161,7 +155,6 @@ local function getNearestEnemy()
     return nearest
 end
 
-
 local combat = CreateTab("Combat")
 combat.Visible = true
 AddToggle(combat, "Aimlock Switch", false, function(v) _G.AIM_ON = v; if not v then lockedPlayer = nil end end)
@@ -175,18 +168,14 @@ AddToggle(visuals, "ESP Box", false, function(v) _G.Esp = v end)
 local misc = CreateTab("Misc")
 AddKeybind(misc, "Menu Key", _G.GUI_KEY, function(v) _G.GUI_KEY = v end)
 
-
 RunService.RenderStepped:Connect(function()
-
     if _G.AIM_ON and lockedPlayer and lockedPlayer.Character then
         local hrp = lockedPlayer.Character:FindFirstChild("HumanoidRootPart")
         if hrp and lockedPlayer.Character.Humanoid.Health > 0 then
-
             Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, hrp.Position)
         else lockedPlayer = nil end
     end
 
-  
     if _G.Hitbox then
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LP and p.Character and GetPlayerInfo(p) then
@@ -199,10 +188,16 @@ RunService.RenderStepped:Connect(function()
                     hrp.Transparency = 1
                     hrp.CanCollide = false
                     
-                    if hum.SeatPart and (hum.SeatPart:IsA("VehicleSeat") or hum.SeatPart:IsA("Seat")) then
-                        local seat = hum.SeatPart
-                        seat.Size = Vector3.new(_G.HitboxSize, _G.HitboxSize, _G.HitboxSize)
-                        seat.CanCollide = false
+                    if hum.SeatPart and hum.SeatPart.Parent then
+                        local vehicleModel = hum.SeatPart.Parent
+                        if not vehicleModel:IsA("Model") then vehicleModel = vehicleModel.Parent end
+                        for _, part in pairs(vehicleModel:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.Size = Vector3.new(_G.HitboxSize, _G.HitboxSize, _G.HitboxSize)
+                                part.Transparency = 1
+                                part.CanCollide = false
+                            end
+                        end
                     end
                 end
             end
@@ -217,7 +212,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-
 UserInputService.InputBegan:Connect(function(i, gp)
     if gp then return end
     if i.KeyCode == _G.AIM_KEY and _G.AIM_ON then
@@ -229,7 +223,6 @@ UserInputService.InputBegan:Connect(function(i, gp)
         else Animate(Main, {Size = UDim2.new(0, 0, 0, 0)}, 0.4); task.delay(0.4, function() if not GUI_VISIBLE then Main.Visible = false end end) end
     end
 end)
-
 
 local function CreateESP(p)
     local Box = Drawing.new("Square")
@@ -249,13 +242,11 @@ end
 for _, p in pairs(Players:GetPlayers()) do CreateESP(p) end
 Players.PlayerAdded:Connect(CreateESP)
 
-
 task.spawn(function()
     Animate(LBarFill, {Size = UDim2.new(1, 0, 1, 0)}, 3)
     task.wait(3); Animate(LoadingMain, {Size = UDim2.new(0,0,0,0)}, 0.5); task.wait(0.5)
     LoadingMain.Visible = false; Main.Visible = true; GUI_VISIBLE = true; Animate(Main, {Size = OriginalSize}, 0.5)
 end)
-
 
 local function MakeDraggable(frame)
     local dragging, dragInput, dragStart, startPos
