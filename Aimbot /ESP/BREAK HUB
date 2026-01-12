@@ -5,7 +5,7 @@ local TweenService = game:GetService("TweenService")
 local Camera = workspace.CurrentCamera
 local LP = Players.LocalPlayer
 
--- // SETTINGS & VARIABLES
+
 _G.AIM_ON = false
 _G.AIM_KEY = Enum.KeyCode.X
 _G.GUI_KEY = Enum.KeyCode.RightShift
@@ -26,10 +26,9 @@ local function Animate(obj, prop, time)
     return t
 end
 
--- // UI ROOT
 local gui = Instance.new("ScreenGui", game.CoreGui)
 
--- // 1. LOADING PANEL
+
 local LoadingMain = Instance.new("Frame", gui)
 LoadingMain.Size = UDim2.new(0, 320, 0, 110)
 LoadingMain.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -41,7 +40,7 @@ LStroke.Color = Color3.fromRGB(90, 180, 255); LStroke.Thickness = 4
 
 local LText = Instance.new("TextLabel", LoadingMain)
 LText.Size = UDim2.new(1, 0, 0, 60); LText.BackgroundTransparency = 1
-LText.Text = "BREAK HUB - UPDATED"; LText.Font = Enum.Font.GothamBold; LText.TextColor3 = Color3.new(1,1,1); LText.TextSize = 14
+LText.Text = "BREAK HUB"; LText.Font = Enum.Font.GothamBold; LText.TextColor3 = Color3.new(1,1,1); LText.TextSize = 14
 
 local LBarBg = Instance.new("Frame", LoadingMain)
 LBarBg.Size = UDim2.new(0.8, 0, 0, 8); LBarBg.Position = UDim2.new(0.1, 0, 0.7, 0); LBarBg.BackgroundColor3 = Color3.fromRGB(30,30,30)
@@ -67,7 +66,7 @@ local Topbar = Instance.new("Frame", Main)
 Topbar.Size = UDim2.new(1, 0, 0, 50); Topbar.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
 local Title = Instance.new("TextLabel", Topbar)
 Title.Size = UDim2.new(1, -40, 1, 0); Title.Position = UDim2.new(0, 25, 0, 0)
-Title.Text = "BREAK HUB PREMIUM (VEHICLE FIX)"; Title.Font = Enum.Font.GothamBold; Title.TextSize = 18; Title.TextColor3 = Color3.fromRGB(90, 180, 255); Title.TextXAlignment = Enum.TextXAlignment.Left; Title.BackgroundTransparency = 1
+Title.Text = "BREAK HUB"; Title.Font = Enum.Font.GothamBold; Title.TextSize = 18; Title.TextColor3 = Color3.fromRGB(90, 180, 255); Title.TextXAlignment = Enum.TextXAlignment.Left; Title.BackgroundTransparency = 1
 
 local Sidebar = Instance.new("Frame", Main)
 Sidebar.Size = UDim2.new(0, 130, 1, -70); Sidebar.Position = UDim2.new(0, 15, 0, 60); Sidebar.BackgroundTransparency = 1
@@ -131,7 +130,7 @@ local function AddKeybind(parent, text, default, callback)
     end)
 end
 
--- // CORE LOGIC: PHE PHÁI
+
 local function GetPlayerInfo(p)
     if not p or not p.Team or not LP.Team then return false, Color3.new(1,1,1) end
     local isEnemy = false
@@ -145,7 +144,7 @@ local function GetPlayerInfo(p)
     return isEnemy, (isEnemy and (pTeam == "Police" and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(255,0,0)) or Color3.new(1,1,1))
 end
 
--- // NEAREST ENEMY
+
 local function getNearestEnemy()
     local mousePos = UserInputService:GetMouseLocation()
     local nearest, shortest = nil, _G.AimDistance
@@ -162,12 +161,12 @@ local function getNearestEnemy()
     return nearest
 end
 
--- // TABS
+
 local combat = CreateTab("Combat")
 combat.Visible = true
-AddToggle(combat, "Aim Master Switch", false, function(v) _G.AIM_ON = v; if not v then lockedPlayer = nil end end)
-AddKeybind(combat, "Aim Lock Key", _G.AIM_KEY, function(v) _G.AIM_KEY = v end)
-AddToggle(combat, "Invisible Hitbox", false, function(v) _G.Hitbox = v end)
+AddToggle(combat, "Aimlock Switch", false, function(v) _G.AIM_ON = v; if not v then lockedPlayer = nil end end)
+AddKeybind(combat, "Aimlock Key", _G.AIM_KEY, function(v) _G.AIM_KEY = v end)
+AddToggle(combat, "Hitbox", false, function(v) _G.Hitbox = v end)
 AddSlider(combat, "Hitbox Size", 2, 50, 10, function(v) _G.HitboxSize = v end)
 
 local visuals = CreateTab("Visuals")
@@ -176,19 +175,18 @@ AddToggle(visuals, "ESP Box", false, function(v) _G.Esp = v end)
 local misc = CreateTab("Misc")
 AddKeybind(misc, "Menu Key", _G.GUI_KEY, function(v) _G.GUI_KEY = v end)
 
--- // MAIN LOGIC (FIX XE VOLT & TÍNH DAME TRÊN XE)
+
 RunService.RenderStepped:Connect(function()
-    -- AIM LOCK
+
     if _G.AIM_ON and lockedPlayer and lockedPlayer.Character then
         local hrp = lockedPlayer.Character:FindFirstChild("HumanoidRootPart")
         if hrp and lockedPlayer.Character.Humanoid.Health > 0 then
-            local camCF = Camera.CFrame
-            local aimPos = hrp.Position + (hrp.Velocity * 0.15)
-            Camera.CFrame = camCF:Lerp(CFrame.new(camCF.Position, aimPos), 0.3)
+
+            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, hrp.Position)
         else lockedPlayer = nil end
     end
 
-    -- HITBOX SYSTEM (HỖ TRỢ XE)
+  
     if _G.Hitbox then
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LP and p.Character and GetPlayerInfo(p) then
@@ -197,24 +195,19 @@ RunService.RenderStepped:Connect(function()
                 local hum = char:FindFirstChild("Humanoid")
                 
                 if hrp and hum and hum.Health > 0 then
-                    -- 1. Xử lý Hitbox cho người đi bộ
                     hrp.Size = Vector3.new(_G.HitboxSize, _G.HitboxSize, _G.HitboxSize)
-                    hrp.Transparency = 1 -- Giữ tàng hình
-                    hrp.CanCollide = false -- Tránh lỗi bị đẩy xe hoặc kẹt nhân vật
+                    hrp.Transparency = 1
+                    hrp.CanCollide = false
                     
-                    -- 2. Xử lý Hitbox khi địch lên xe (Máy bay, Volt, v.v)
-                    if hum.SeatPart and hum.SeatPart:IsA("VehicleSeat") or hum.SeatPart:IsA("Seat") then
+                    if hum.SeatPart and (hum.SeatPart:IsA("VehicleSeat") or hum.SeatPart:IsA("Seat")) then
                         local seat = hum.SeatPart
-                        -- Phình to cái ghế địch đang ngồi để bắn vào xe là trúng
                         seat.Size = Vector3.new(_G.HitboxSize, _G.HitboxSize, _G.HitboxSize)
-                        seat.Transparency = 1 -- Ghế thường ẩn sẵn hoặc để 1 cho chắc
                         seat.CanCollide = false
                     end
                 end
             end
         end
     else
-        -- Trả về trạng thái cũ nếu tắt hack
         for _, p in pairs(Players:GetPlayers()) do
             if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 p.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
@@ -224,7 +217,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- // INPUTS
+
 UserInputService.InputBegan:Connect(function(i, gp)
     if gp then return end
     if i.KeyCode == _G.AIM_KEY and _G.AIM_ON then
@@ -237,7 +230,7 @@ UserInputService.InputBegan:Connect(function(i, gp)
     end
 end)
 
--- // ESP BOX
+
 local function CreateESP(p)
     local Box = Drawing.new("Square")
     Box.Thickness = 2; Box.Visible = false
@@ -256,14 +249,14 @@ end
 for _, p in pairs(Players:GetPlayers()) do CreateESP(p) end
 Players.PlayerAdded:Connect(CreateESP)
 
--- // STARTUP
+
 task.spawn(function()
     Animate(LBarFill, {Size = UDim2.new(1, 0, 1, 0)}, 3)
     task.wait(3); Animate(LoadingMain, {Size = UDim2.new(0,0,0,0)}, 0.5); task.wait(0.5)
     LoadingMain.Visible = false; Main.Visible = true; GUI_VISIBLE = true; Animate(Main, {Size = OriginalSize}, 0.5)
 end)
 
--- [DRAGGABLE]
+
 local function MakeDraggable(frame)
     local dragging, dragInput, dragStart, startPos
     frame.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 and not IsSliding then dragging = true; dragStart = input.Position; startPos = frame.Position end end)
