@@ -63,7 +63,7 @@ local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = "Aluvise_Premium_Balanced"
 gui.ResetOnSpawn = false
 
--- Loading Panel
+
 local Loading = Instance.new("Frame", gui)
 Loading.Size = UDim2.new(0, 250, 0, 80)
 Loading.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -187,7 +187,7 @@ local function AddKeybind(parent, text, default, callback)
     end)
 end
 
--- // TABS SETUP
+
 local combat = CreateTab("Combat")
 combat.Visible = true
 AddToggle(combat, "Aimlock Enabled", false, function(v) _G.AIM_ON = v; if not v then lockedPlayer = nil end end)
